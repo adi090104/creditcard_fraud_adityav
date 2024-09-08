@@ -568,8 +568,6 @@ def classify_transactions(new_data,model):
   fraud_trans = new_data[predictions == 1]
   return fraud_trans
 
-pip install streamlit
-
 import streamlit as st
 import pandas as pd
 import pickle
