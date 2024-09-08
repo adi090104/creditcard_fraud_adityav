@@ -15,6 +15,9 @@ def load_model():
     except FileNotFoundError:
         st.error("Model file not found. Please ensure 'model.pkl' is in the correct directory.")
         st.stop()
+    except Exception as e:
+        st.error(f"Error loading model: {e}")
+        st.stop()
 
 # Function to classify transactions using the LSTM model
 def classify_fraudulent_transactions(new_data, model):
