@@ -1,48 +1,45 @@
 import streamlit as st
 import pandas as pd
-import torch
+import pickle
+import os
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
-# Load the trained PyTorch LSTM model
+# Load the trained Isolation Forest model
 @st.cache_resource
 def load_model():
     try:
-        model_path = 'model.pkl'
-        model = torch.load(model_path)
-        model.eval()  # Set the model to evaluation mode
+        model_path = os.path.join('models', 'model.pkl')  # Example if placed in 'models' folder
+        with open(model_path, 'rb') as file:
+            model = pickle.load(file)
         return model
     except FileNotFoundError:
-        st.error("Model file not found. Please ensure 'model.pkl' is in the correct directory.")
+        st.error(f"Model file not found. Please ensure 'model.pkl' is in the correct directory: {model_path}")
         st.stop()
     except Exception as e:
         st.error(f"Error loading model: {e}")
         st.stop()
 
-# Function to classify transactions using the LSTM model
+# Function to classify transactions using the Isolation Forest model
 def classify_fraudulent_transactions(new_data, model):
     """
     Classify transactions as fraudulent using the trained anomaly detection model.
     
     Parameters:
     - new_data (pd.DataFrame): DataFrame containing the new credit card transactions.
-    - model: Trained PyTorch LSTM model.
+    - model: Trained Isolation Forest model.
     
     Returns:
     - DataFrame of transactions classified as fraudulent.
     """
-    # Preprocess the data and convert it to a tensor
-    input_data = torch.tensor(new_data.values).float()
+    # Preprocess the data if needed and perform prediction
+    input_data = new_data.select_dtypes(include=['float64', 'int64'])
     
     # Perform prediction with the model
-    with torch.no_grad():
-        predictions = model(input_data)
+    predictions = model.predict(input_data)
     
-    # Assuming a threshold of 0.5 for anomaly detection
-    predicted_labels = (predictions >= 0.5).int().numpy()
-
-    # Return transactions that are classified as fraudulent
-    fraudulent_transactions = new_data[predicted_labels == 1]
+    # Assuming -1 indicates anomaly (fraudulent) and 1 indicates normal
+    fraudulent_transactions = new_data[predictions == -1]
     return fraudulent_transactions
 
 def main():
@@ -99,4 +96,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
