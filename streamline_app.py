@@ -1,44 +1,40 @@
 import streamlit as st
 import pandas as pd
-import pickle
-import os
+from sklearn.ensemble import IsolationForest
+from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
-# Load the trained Isolation Forest model
+# Define and train the Isolation Forest model
 @st.cache_resource
-def load_model():
-    try:
-        model_path = os.path.join('models', 'model.pkl')  # Example if placed in 'models' folder
-        with open(model_path, 'rb') as file:
-            model = pickle.load(file)
-        return model
-    except FileNotFoundError:
-        st.error(f"Model file not found. Please ensure 'model.pkl' is in the correct directory: {model_path}")
-        st.stop()
-    except Exception as e:
-        st.error(f"Error loading model: {e}")
-        st.stop()
+def train_model(data):
+    # Preprocess the data
+    scaler = StandardScaler()
+    scaled_data = scaler.fit_transform(data.select_dtypes(include=['float64', 'int64']))
+
+    # Train the Isolation Forest model
+    model = IsolationForest(contamination=0.01)  # Adjust contamination as needed
+    model.fit(scaled_data)
+    return model, scaler
 
 # Function to classify transactions using the Isolation Forest model
-def classify_fraudulent_transactions(new_data, model):
+def classify_fraudulent_transactions(new_data, model, scaler):
     """
-    Classify transactions as fraudulent using the trained anomaly detection model.
+    Classify transactions as fraudulent using the trained Isolation Forest model.
     
     Parameters:
     - new_data (pd.DataFrame): DataFrame containing the new credit card transactions.
     - model: Trained Isolation Forest model.
+    - scaler: StandardScaler used to preprocess the data.
     
     Returns:
     - DataFrame of transactions classified as fraudulent.
     """
-    # Preprocess the data if needed and perform prediction
-    input_data = new_data.select_dtypes(include=['float64', 'int64'])
+    # Preprocess the data and make predictions
+    scaled_data = scaler.transform(new_data.select_dtypes(include=['float64', 'int64']))
+    predictions = model.predict(scaled_data)
     
-    # Perform prediction with the model
-    predictions = model.predict(input_data)
-    
-    # Assuming -1 indicates anomaly (fraudulent) and 1 indicates normal
+    # Return transactions that are classified as fraudulent
     fraudulent_transactions = new_data[predictions == -1]
     return fraudulent_transactions
 
@@ -66,11 +62,11 @@ def main():
             st.error("The uploaded file is empty.")
             return
 
-        # Load the trained model
-        model = load_model()
+        # Train the model (this should ideally be done separately and the model should be saved and loaded)
+        model, scaler = train_model(data)
 
         # Process and classify transactions
-        fraudulent_transactions = classify_fraudulent_transactions(data, model)
+        fraudulent_transactions = classify_fraudulent_transactions(data, model, scaler)
 
         st.write("Fraudulent Transactions:")
         st.write(fraudulent_transactions)
@@ -96,5 +92,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
