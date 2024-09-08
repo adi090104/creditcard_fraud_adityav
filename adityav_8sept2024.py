@@ -568,6 +568,7 @@ def classify_transactions(new_data,model):
   fraud_trans = new_data[predictions == 1]
   return fraud_trans
 
+
 import streamlit as st
 import pandas as pd
 import pickle
@@ -583,7 +584,16 @@ except FileNotFoundError:
     st.stop()
 
 def classify_fraudulent_transactions(new_data, model):
+    """
+    Classify transactions as fraudulent using the trained anomaly detection model.
 
+    Parameters:
+    - new_data (pd.DataFrame): DataFrame containing the new credit card transactions.
+    - model: Trained anomaly detection model.
+
+    Returns:
+    - DataFrame of transactions classified as fraudulent.
+    """
     predictions = model.predict(new_data)
     fraudulent_transactions = new_data[predictions == 1]
     return fraudulent_transactions
@@ -621,16 +631,19 @@ def main():
         # Visualize anomalies if there are any
         if not fraudulent_transactions.empty:
             pca = PCA(n_components=2)
-            # Assuming the features are numerical and can be used directly
-            X_pca = pca.fit_transform(fraudulent_transactions.select_dtypes(include=['float64', 'int64']))
-
-            plt.figure(figsize=(10, 7))
-            plt.scatter(X_pca[:, 0], X_pca[:, 1], c='red', label='Fraudulent Transactions')
-            plt.xlabel('PCA Feature 1')
-            plt.ylabel('PCA Feature 2')
-            plt.title('Fraudulent Transactions Visualization')
-            plt.legend()
-            st.pyplot()
+            numerical_features = fraudulent_transactions.select_dtypes(include=['float64', 'int64'])
+            
+            if not numerical_features.empty:
+                X_pca = pca.fit_transform(numerical_features)
+                plt.figure(figsize=(10, 7))
+                plt.scatter(X_pca[:, 0], X_pca[:, 1], c='red', label='Fraudulent Transactions')
+                plt.xlabel('PCA Feature 1')
+                plt.ylabel('PCA Feature 2')
+                plt.title('Fraudulent Transactions Visualization')
+                plt.legend()
+                st.pyplot()
+            else:
+                st.write("No numerical features available for PCA visualization.")
         else:
             st.write("No fraudulent transactions detected.")
 
